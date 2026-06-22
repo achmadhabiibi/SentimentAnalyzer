@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentiment Analyzer — AI-Powered Text Analysis</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #23273a;
+    --border: #2e3349;
+    --accent: #6c63ff;
+    --accent2: #a78bfa;
+    --pos: #34d399;
+    --neg: #f87171;
+    --neu: #94a3b8;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  header {
+    background: linear-gradient(135deg, #1a1d27 0%, #12142e 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { font-size: 28px; }
+  .logo h1 { font-size: 1.3rem; font-weight: 700; color: var(--text); }
+  .logo span { font-size: 0.75rem; background: var(--accent); color: white; padding: 2px 8px; border-radius: 20px; margin-left: 8px; }
+  .api-link { color: var(--accent2); font-size: 0.85rem; text-decoration: none; border: 1px solid var(--border); padding: 6px 14px; border-radius: 8px; transition: all .2s; }
+  .api-link:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* Layout */
+  main { max-width: 900px; margin: 40px auto; padding: 0 20px 60px; }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 16px;
+  }
+
+  /* Textarea */
+  .input-wrap { position: relative; }
+
+  textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 1rem;
+    line-height: 1.6;
+    padding: 16px;
+    resize: vertical;
+    min-height: 130px;
+    outline: none;
+    transition: border-color .2s;
+    font-family: inherit;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+
+  .char-count {
+    position: absolute;
+    bottom: 10px;
+    right: 14px;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  /* Controls */
+  .controls { display: flex; gap: 12px; margin-top: 14px; align-items: center; flex-wrap: wrap; }
+
+  select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    flex: 1;
+  }
+  .btn-primary:hover { background: #5a52e0; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn-clear {
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-clear:hover { color: var(--text); }
+
+  /* Result */
+  #result { display: none; }
+
+  .sentiment-banner {
+    border-radius: 12px;
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .banner-POSITIF, .banner-POSITIVE { background: linear-gradient(135deg, #064e3b, #065f46); border: 1px solid #34d399; }
+  .banner-NEGATIF, .banner-NEGATIVE { background: linear-gradient(135deg, #4c0519, #7f1d1d); border: 1px solid #f87171; }
+  .banner-NETRAL, .banner-NEUTRAL   { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #475569; }
+
+  .banner-emoji { font-size: 3rem; }
+  .banner-text h2 { font-size: 1.6rem; font-weight: 800; }
+  .banner-text p { color: rgba(255,255,255,0.6); font-size: 0.9rem; margin-top: 4px; }
+
+  .color-POSITIF, .color-POSITIVE { color: var(--pos); }
+  .color-NEGATIF, .color-NEGATIVE { color: var(--neg); }
+  .color-NETRAL, .color-NEUTRAL   { color: var(--neu); }
+
+  /* Scores */
+  .scores-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+
+  .score-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+
+  .score-box label { font-size: 0.75rem; color: var(--muted); display: block; margin-bottom: 4px; }
+  .score-box .value { font-size: 1.6rem; font-weight: 700; }
+  .score-pos .value { color: var(--pos); }
+  .score-neg .value { color: var(--neg); }
+
+  /* Bar */
+  .bar-wrap { margin-bottom: 20px; }
+  .bar-labels { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
+  .bar-bg { background: var(--surface2); border-radius: 99px; height: 12px; overflow: hidden; position: relative; }
+  .bar-fill-pos { position: absolute; left: 0; top: 0; height: 100%; background: var(--pos); border-radius: 99px; transition: width .8s ease; }
+  .bar-fill-neg { position: absolute; right: 0; top: 0; height: 100%; background: var(--neg); border-radius: 99px; transition: width .8s ease; }
+
+  /* Tags */
+  .tags-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+  .tag {
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  .tag-pos { background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.3); color: var(--pos); }
+  .tag-neg { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--neg); }
+
+  /* Bulk */
+  .bulk-results { margin-top: 16px; }
+  .bulk-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+  }
+
+  .bulk-badge {
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .bulk-badge.POSITIF, .bulk-badge.POSITIVE { background: rgba(52,211,153,0.15); color: var(--pos); }
+  .bulk-badge.NEGATIF, .bulk-badge.NEGATIVE { background: rgba(248,113,113,0.15); color: var(--neg); }
+  .bulk-badge.NETRAL,  .bulk-badge.NEUTRAL  { background: rgba(148,163,184,0.1); color: var(--neu); }
+
+  /* Spinner */
+  .spinner { display: none; width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+  .tab {
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    border: 1px solid transparent;
+    transition: all .15s;
+    color: var(--muted);
+  }
+  .tab.active { background: var(--accent); color: white; }
+  .tab:not(.active):hover { background: var(--surface2); color: var(--text); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Info meta */
+  .meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); padding-top: 12px; border-top: 1px solid var(--border); margin-top: 16px; }
+  .meta span b { color: var(--text); }
+
+  @media (max-width: 600px) {
+    header { flex-direction: column; gap: 12px; text-align: center; }
+    .scores-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-icon">🧠</span>
+    <h1>Sentiment Analyzer <span>v1.0</span></h1>
+  </div>
+  <a class="api-link" href="/docs" target="_blank">📖 API Docs</a>
+</header>
+
+<main>
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('single')">✍️ Single Text</div>
+    <div class="tab" onclick="switchTab('bulk')">📋 Bulk Analysis</div>
+  </div>
+
+  <!-- Single Tab -->
+  <div id="tab-single" class="tab-panel active">
+    <div class="card">
+      <div class="card-title">Masukkan Teks</div>
+      <div class="input-wrap">
+        <textarea id="inputText" placeholder="Tulis kalimat di sini... (Bahasa Indonesia atau English)" oninput="updateChar()"></textarea>
+        <span class="char-count"><span id="charCount">0</span> karakter</span>
+      </div>
+      <div class="controls">
+        <select id="langSelect">
+          <option value="auto">🌐 Auto Detect</option>
+          <option value="id">🇮🇩 Indonesia</option>
+          <option value="en">🇺🇸 English</option>
+        </select>
+        <button class="btn btn-clear" onclick="clearAll()">↺ Clear</button>
+        <button class="btn btn-primary" id="analyzeBtn" onclick="analyzeSingle()">
+          <div class="spinner" id="spinner"></div>
+          <span id="btnText">Analisis Sekarang</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div id="result">
+      <div id="sentimentBanner" class="sentiment-banner">
+        <div class="banner-emoji" id="resultEmoji"></div>
+        <div class="banner-text">
+          <h2 id="resultLabel" class=""></h2>
+          <p id="resultSub"></p>
+        </div>
+      </div>
+
+      <div class="scores-grid">
+        <div class="score-box score-pos">
+          <label>😊 Skor Positif</label>
+          <div class="value" id="posScore">0</div>
+        </div>
+        <div class="score-box score-neg">
+          <label>😔 Skor Negatif</label>
+          <div class="value" id="negScore">0</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="bar-labels">
+          <span>Positif</span>
+          <span>Negatif</span>
+        </div>
+        <div class="bar-bg">
+          <div class="bar-fill-pos" id="barPos" style="width:0%"></div>
+          <div class="bar-fill-neg" id="barNeg" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="card" id="wordsCard">
+        <div id="posWords"></div>
+        <div id="negWords" style="margin-top:14px"></div>
+
+        <div class="meta" id="metaInfo"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Tab -->
+  <div id="tab-bulk" class="tab-panel">
+    <div class="card">
+      <div class="card-title">Analisis Banyak Teks Sekaligus (maks. 50)</div>
+      <textarea id="bulkInput" placeholder="Tulis setiap kalimat di baris baru:&#10;Saya sangat senang hari ini!&#10;Produk ini sangat mengecewakan.&#10;Cuacanya biasa saja." style="min-height:160px"></textarea>
+      <div class="controls">
+        <select id="bulkLang">
+          <option value="auto">🌐 Auto Detect</option>
+          <option value="id">🇮🇩 Indonesia</option>
+          <option value="en">🇺🇸 English</option>
+        </select>
+        <button class="btn btn-primary" onclick="analyzeBulk()">📊 Analisis Semua</button>
+      </div>
+    </div>
+    <div id="bulkResult"></div>
+  </div>
+</main>
+
+<script>
+  const API = "";
+
+  function switchTab(name) {
+    document.querySelectorAll(".tab").forEach((t,i) => t.classList.toggle("active", ["single","bulk"][i] === name));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    document.getElementById("tab-" + name).classList.add("active");
+  }
+
+  function updateChar() {
+    document.getElementById("charCount").textContent = document.getElementById("inputText").value.length;
+  }
+
+  function clearAll() {
+    document.getElementById("inputText").value = "";
+    document.getElementById("charCount").textContent = "0";
+    document.getElementById("result").style.display = "none";
+  }
+
+  function setLoading(on) {
+    document.getElementById("spinner").style.display = on ? "block" : "none";
+    document.getElementById("btnText").textContent = on ? "Menganalisis..." : "Analisis Sekarang";
+    document.getElementById("analyzeBtn").disabled = on;
+  }
+
+  async function analyzeSingle() {
+    const text = document.getElementById("inputText").value.trim();
+    const language = document.getElementById("langSelect").value;
+    if (!text) { alert("Masukkan teks terlebih dahulu!"); return; }
+
+    setLoading(true);
+    try {
+      const res = await fetch(API + "/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, language })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Error");
+      showResult(data);
+    } catch(e) {
+      alert("Error: " + e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function showResult(d) {
+    const banner = document.getElementById("sentimentBanner");
+    banner.className = "sentiment-banner banner-" + d.label;
+    document.getElementById("resultEmoji").textContent = d.emoji;
+
+    const labelEl = document.getElementById("resultLabel");
+    labelEl.textContent = d.label;
+    labelEl.className = "color-" + d.label;
+
+    const conf = Math.round(d.confidence * 100);
+    document.getElementById("resultSub").textContent =
+      `Kepercayaan: ${conf}% · Bahasa: ${d.language === "id" ? "Indonesia" : "English"}`;
+
+    document.getElementById("posScore").textContent = d.positive_score.toFixed(1);
+    document.getElementById("negScore").textContent = d.negative_score.toFixed(1);
+
+    const total = d.positive_score + d.negative_score || 1;
+    setTimeout(() => {
+      document.getElementById("barPos").style.width = (d.positive_score / total * 100) + "%";
+      document.getElementById("barNeg").style.width = (d.negative_score / total * 100) + "%";
+    }, 50);
+
+    let posHtml = "";
+    if (d.matched_positive.length) {
+      posHtml = `<div class="card-title">✅ Kata Positif Terdeteksi</div><div class="tags-row">` +
+        d.matched_positive.map(w => `<span class="tag tag-pos">${w}</span>`).join("") + `</div>`;
+    }
+    document.getElementById("posWords").innerHTML = posHtml;
+
+    let negHtml = "";
+    if (d.matched_negative.length) {
+      negHtml = `<div class="card-title">❌ Kata Negatif Terdeteksi</div><div class="tags-row">` +
+        d.matched_negative.map(w => `<span class="tag tag-neg">${w}</span>`).join("") + `</div>`;
+    }
+    document.getElementById("negWords").innerHTML = negHtml;
+
+    document.getElementById("metaInfo").innerHTML =
+      `<span>Jumlah Kata: <b>${d.word_count}</b></span>` +
+      `<span>Dianalisis: <b>${new Date(d.analyzed_at).toLocaleTimeString("id")}</b></span>`;
+
+    document.getElementById("result").style.display = "block";
+    document.getElementById("result").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  async function analyzeBulk() {
+    const raw = document.getElementById("bulkInput").value.trim();
+    const language = document.getElementById("bulkLang").value;
+    if (!raw) { alert("Masukkan teks terlebih dahulu!"); return; }
+
+    const texts = raw.split("\n").map(t => t.trim()).filter(Boolean);
+    if (texts.length > 50) { alert("Maksimal 50 kalimat!"); return; }
+
+    const res = await fetch(API + "/analyze/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texts, language })
+    });
+    const data = await res.json();
+
+    const summaryKeys = Object.keys(data.summary);
+    let summaryHtml = summaryKeys.map(k =>
+      `<span class="tag bulk-badge ${k}">${k}: ${data.summary[k]}</span>`
+    ).join(" ");
+
+    let itemsHtml = data.results.map((r, i) =>
+      `<div class="bulk-item">
+        <span class="bulk-badge ${r.label}">${r.emoji} ${r.label}</span>
+        <span style="color:var(--text);flex:1">${r.text}</span>
+        <span style="color:var(--muted);font-size:0.78rem">${Math.round(r.confidence*100)}%</span>
+      </div>`
+    ).join("");
+
+    document.getElementById("bulkResult").innerHTML = `
+      <div class="card">
+        <div class="card-title">📊 Ringkasan — ${data.total} Teks</div>
+        <div class="tags-row">${summaryHtml}</div>
+        <div class="bulk-results" style="margin-top:16px">${itemsHtml}</div>
+      </div>`;
+  }
+
+  // Enter key shortcut
+  document.addEventListener("keydown", e => {
+    if (e.ctrlKey && e.key === "Enter") analyzeSingle();
+  });
+</script>
+
+</body>
+</html>
